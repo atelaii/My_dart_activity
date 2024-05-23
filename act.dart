@@ -1,41 +1,56 @@
-import 'dart:io';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 void main() {
-  String inputFilePath = 'input.txt';
-  String outputFilePath = 'output.txt';
+  final apiKey =
+      '1b843c42baeff455db63762b11923567'; // Replace 'YOUR_API_KEY' with your actual API key
+  final city =
+      'Philippines'; // Replace 'London' with the city you want to get weather data for
 
-  // Read numbers from the input file
-  List<double> numbers = readNumbersFromFile(inputFilePath);
-
-  // If numbers were read successfully, calculate the sum and write it to the output file
-  if (numbers.isNotEmpty) {
-    double sum = numbers.reduce((value, element) => value + element);
-    writeSumToFile(outputFilePath, sum);
-    print('Sum of numbers written to $outputFilePath');
-  } else {
-    print('No numbers found in the input file or file not found.');
-  }
+  fetchWeatherData(apiKey, city).then((weatherData) {
+    if (weatherData != null) {
+      printWeatherData(weatherData);
+    } else {
+      print('Failed to fetch weather data.');
+    }
+  });
 }
 
-// Function to read numbers from a file
-List<double> readNumbersFromFile(String filePath) {
-  List<double> numbers = [];
+Future<Map<String, dynamic>?> fetchWeatherData(
+    String apiKey, String city) async {
+  final apiUrl =
+      'https://api.openweathermap.org/data/2.5/weather?q=$city&appid=$apiKey';
+
   try {
-    numbers = File(filePath)
-        .readAsLinesSync()
-        .map((line) => double.tryParse(line.trim()) ?? 0)
-        .toList();
+    http.Response response = await http.get(Uri.parse(apiUrl));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      print('Failed to fetch weather data: ${response.statusCode}');
+      return null;
+    }
   } catch (e) {
-    print('Error reading file: $e');
+    print('Error fetching weather data: $e');
+    return null;
   }
-  return numbers;
 }
 
-// Function to write sum to a file
-void writeSumToFile(String filePath, double sum) {
-  try {
-    File(filePath).writeAsStringSync(sum.toString());
-  } catch (e) {
-    print('Error writing file: $e');
-  }
+void printWeatherData(Map<String, dynamic> weatherData) {
+  final cityName = weatherData['name'];
+  final weatherDescription = weatherData['weather'][0]['description'];
+  final temperature = (weatherData['main']['temp'] - 273.15)
+      .toStringAsFixed(2); // Convert Kelvin to Celsius
+
+  print('Weather in $cityName:');
+  print('Description: $weatherDescription');
+  print('Temperature: $temperature°C');
 }
+/*the output:
+$ dart activity4.dart
+Weather in London:
+Description: overcast clouds
+Temperature: 12.14°C
+
+https://home.openweathermap.org/api_keys
+
+*/
